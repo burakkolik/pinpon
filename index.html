@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover" />
+  <meta name="theme-color" content="#05070f" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="description" content="Yapay zekaya karşı gerçekçi fizikli 3B pinpon (masa tenisi) oyunu" />
+  <title>Pinpon 3D – Yapay Zekaya Karşı</title>
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Ccircle cx='26' cy='26' r='20' fill='%23e3263b'/%3E%3Crect x='30' y='38' width='10' height='24' rx='4' transform='rotate(-45 35 50)' fill='%23c08a52'/%3E%3Ccircle cx='50' cy='14' r='8' fill='%23fff'/%3E%3C/svg%3E" />
+  <link rel="stylesheet" href="./css/style.css" />
+</head>
+<body>
+  <canvas id="game" aria-label="Pinpon oyun alanı"></canvas>
+
+  <!-- Skor tablosu -->
+  <div id="hud" class="hidden">
+    <div class="scoreboard">
+      <div class="side you">
+        <div class="who"><span class="srv" id="srvP"></span>SEN</div>
+        <div class="row"><span class="sets" id="setsP"></span><span class="pts" id="ptsP">0</span></div>
+      </div>
+      <div class="mid">
+        <div id="setLbl">SET 1</div>
+        <div id="diffLbl" class="diff">ORTA</div>
+      </div>
+      <div class="side bot">
+        <div class="who" id="botName">ROBOT<span class="srv" id="srvA"></span></div>
+        <div class="row"><span class="pts" id="ptsA">0</span><span class="sets" id="setsA"></span></div>
+      </div>
+    </div>
+    <button id="pauseBtn" class="icon-btn" aria-label="Duraklat">
+      <svg viewBox="0 0 24 24"><rect x="6" y="5" width="4" height="14" rx="1"/><rect x="14" y="5" width="4" height="14" rx="1"/></svg>
+    </button>
+  </div>
+
+  <div id="rallyBox" class="hidden"><span id="rallyN">0</span> vuruş · <span id="speedN">0</span> km/sa</div>
+
+  <div id="msg"><div class="t"></div><div class="s"></div></div>
+  <div id="serveHint" class="hidden">
+    <div class="hand">👆</div>
+    <div><b>Servis sende</b><br />Dokun ya da yukarı kaydır</div>
+  </div>
+
+  <!-- Ana menü -->
+  <div id="menu" class="overlay">
+    <div class="panel">
+      <div class="logo">
+        <div class="ball3d"></div>
+        <h1>PİNPON <span>3D</span></h1>
+      </div>
+      <p class="tag">Gerçek fizik · Spin · Yapay zeka rakip</p>
+
+      <h2>Hangi seviyede oynamak istersin?</h2>
+      <div class="cards" id="diffCards">
+        <button class="card easy" data-diff="easy">
+          <div class="bot-ico"><i></i><i></i></div>
+          <b>Basit</b><small>Robo-Çaylak</small>
+          <em>Yavaş toplar, bol hata</em>
+        </button>
+        <button class="card medium sel" data-diff="medium">
+          <div class="bot-ico"><i></i><i></i></div>
+          <b>Orta</b><small>Robo-Usta</small>
+          <em>Spin ve köşe atışları</em>
+        </button>
+        <button class="card hard" data-diff="hard">
+          <div class="bot-ico"><i></i><i></i></div>
+          <b>Zor</b><small>Robo-Şampiyon</small>
+          <em>Hızlı, smaçlı, acımasız</em>
+        </button>
+      </div>
+
+      <div class="opts">
+        <div class="opt">
+          <label>Maç</label>
+          <div class="seg" id="modeSeg">
+            <button data-v="quick">5 Sayı</button>
+            <button data-v="standard" class="sel">11 Sayı</button>
+            <button data-v="bo3">3 Set</button>
+          </div>
+        </div>
+        <div class="opt">
+          <label>İlk servis</label>
+          <div class="seg" id="serveSeg">
+            <button data-v="P" class="sel">Sen</button>
+            <button data-v="A">Robot</button>
+            <button data-v="coin">Kura</button>
+          </div>
+        </div>
+      </div>
+
+      <button id="playBtn" class="play">🏓 TOPLA OYNAYALIM!</button>
+
+      <details class="howto">
+        <summary>Nasıl oynanır?</summary>
+        <ul>
+          <li><b>Parmağını sürükle:</b> raket parmağının biraz üstünde onu takip eder.</li>
+          <li><b>Topa vur:</b> top kendi alanında sektikten sonra raketi topun yoluna koy.</li>
+          <li><b>Hızlı yukarı kaydır:</b> sert vuruş + topspin. Yüksek topta smaç!</li>
+          <li><b>Aşağı çek:</b> kesme (backspin) – kısa ve alçak top.</li>
+          <li><b>Yana kaydır:</b> topu o yöne yollar, yan falso verir.</li>
+          <li><b>Servis:</b> dokun (normal), yukarı kaydır (uzun/hızlı), aşağı kaydır (kısa kesme).</li>
+          <li>Gelen topun spini bloklarda topu yükseltir ya da fileye düşürür – sert vurarak yenebilirsin.</li>
+        </ul>
+      </details>
+      <div class="foot">
+        <button id="soundBtn" class="chip">🔊 Ses: Açık</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Duraklatma -->
+  <div id="pauseMenu" class="overlay hidden">
+    <div class="panel small">
+      <h2>Duraklatıldı</h2>
+      <button id="resumeBtn" class="play">▶ Devam Et</button>
+      <button id="soundBtn2" class="chip wide">🔊 Ses: Açık</button>
+      <button id="quitBtn" class="chip wide">⟵ Ana Menü</button>
+    </div>
+  </div>
+
+  <!-- Maç sonu -->
+  <div id="endMenu" class="overlay hidden">
+    <div class="panel small">
+      <div id="endTitle" class="end-title">KAZANDIN!</div>
+      <div id="endScore" class="end-score">11 - 7</div>
+      <div class="stats" id="endStats"></div>
+      <button id="againBtn" class="play">↻ Tekrar Oyna</button>
+      <button id="menuBtn" class="chip wide">Seviye Değiştir</button>
+    </div>
+  </div>
+
+
+  <script type="module" src="./js/main.js"></script>
+</body>
+</html>
